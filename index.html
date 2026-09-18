@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TouristSafetyApp — Offline SOS for Remote Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0e1712;
+    --bg-raised: #16211a;
+    --bg-raised-2: #1c2921;
+    --line: #2a3a30;
+    --text: #eef3ee;
+    --text-dim: #93a396;
+    --text-faint: #5f7166;
+    --flare: #ff4433;
+    --flare-dim: #7a2a24;
+    --signal: #5fd489;
+    --amber: #f2a93b;
+    --accent: #dfe86a;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg: #f3f1e8;
+      --bg-raised: #ffffff;
+      --bg-raised-2: #eae7da;
+      --line: #d8d4c4;
+      --text: #16211a;
+      --text-dim: #56624f;
+      --text-faint: #8b9382;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg: #f3f1e8;
+    --bg-raised: #ffffff;
+    --bg-raised-2: #eae7da;
+    --line: #d8d4c4;
+    --text: #16211a;
+    --text-dim: #56624f;
+    --text-faint: #8b9382;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    overscroll-behavior:none;
+  }
+
+  .shell{
+    width:100%;
+    max-width:420px;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, rgba(95,212,137,0.07), transparent 60%),
+      var(--bg);
+  }
+
+  /* ---- top status bar ---- */
+  .statusbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 20px 10px;
+    font-size:12px;
+    color: var(--text-dim);
+    letter-spacing:.02em;
+  }
+  .statusbar .brand{
+    font-family: var(--font-head);
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:.01em;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .brand .mark{
+    width:9px;height:9px;border-radius:2px;
+    background:var(--signal);
+    transform:rotate(45deg);
+    flex-shrink:0;
+  }
+  .net-chip{
+    display:flex; align-items:center; gap:6px;
+    padding:5px 10px 5px 8px;
+    border:1px solid var(--line);
+    border-radius:100px;
+    font-size:11.5px;
+    color:var(--text-dim);
+  }
+  .net-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--signal);}
+  .net-chip.searching .dot{background:var(--amber); animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  /* ---- screens ---- */
+  .screens{ flex:1; position:relative; padding-bottom:86px; }
+  .screen{ display:none; padding: 6px 20px 28px; animation: fade .25s ease; }
+  .screen.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  h1.page-title{
+    font-family: var(--font-head);
+    font-weight:600;
+    font-size:29px;
+    letter-spacing:.01em;
+    margin: 6px 0 3px;
+  }
+  .page-sub{
+    color:var(--text-dim);
+    font-size:13.5px;
+    line-height:1.5;
+    margin:0 0 22px;
+    max-width:34ch;
+  }
+
+  /* ---- HOME ---- */
+  .home-top{ text-align:left; }
+  .locale-line{
+    display:flex; align-items:center; gap:8px;
+    color:var(--text-faint); font-size:12.5px; margin-bottom:26px;
+  }
+  .locale-line b{ color:var(--text-dim); font-weight:600; }
+
+  .sos-wrap{
+    display:flex; flex-direction:column; align-items:center;
+    margin: 10px 0 8px;
+  }
+  .sos-btn{
+    position:relative;
+    width:196px; height:196px;
+    border-radius:50%;
+    border:none;
+    background: radial-gradient(circle at 32% 28%, #ff5b4c, var(--flare) 70%);
+    color:#fff9f8;
+    font-family: var(--font-head);
+    font-weight:700;
+    font-size:34px;
+    letter-spacing:.06em;
+    cursor:pointer;
+    box-shadow: 0 0 0 8px rgba(255,68,51,0.08), 0 18px 40px -14px rgba(255,68,51,0.55);
+    -webkit-user-select:none; user-select:none;
+    touch-action:none;
+    overflow:hidden;
+  }
+  .sos-btn::after{
+    content:"";
+    position:absolute; inset:0;
+    background: conic-gradient(rgba(255,255,255,0.55) var(--p,0%), transparent 0);
+    -webkit-mask: radial-gradient(closest-side, transparent 76%, black 77%);
+    mask: radial-gradient(closest-side, transparent 76%, black 77%);
+    transition: background .05s linear;
+  }
+  .sos-btn small{
+    display:block; font-family:var(--font-body); font-weight:600;
+    font-size:11.5px; letter-spacing:.08em; margin-top:6px; opacity:.9;
+  }
+  .sos-hint{
+    margin-top:18px; font-size:12.5px; color:var(--text-faint);
+    text-align:center; max-width:26ch; line-height:1.5;
+  }
+
+  .quick-row{ display:flex; gap:10px; margin-top:24px; }
+  .quick-btn{
+    flex:1;
+    display:flex; flex-direction:column; gap:4px;
+    padding:14px 14px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    color:var(--text);
+    text-align:left;
+    cursor:pointer;
+    font-family:var(--font-body);
+  }
+  .quick-btn .qi{font-size:18px;}
+  .quick-btn .qt{font-weight:600; font-size:13.5px;}
+  .quick-btn .qd{font-size:11.5px; color:var(--text-faint); line-height:1.35;}
+  .quick-btn.danger{ border-color: rgba(255,68,51,0.35); }
+
+  .status-card{
+    margin-top:22px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:16px 16px;
+  }
+  .status-card .row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 0;
+  }
+  .status-card .row + .row{ border-top:1px solid var(--line); }
+  .status-card .row .label{ font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:8px; }
+  .status-card .row .val{ font-size:12.5px; font-weight:600; }
+  .val.signal{ color:var(--signal); }
+  .val.amber{ color:var(--amber); }
+
+  /* ---- NETWORK screen ---- */
+  .mesh-canvas{
+    position:relative;
+    height:260px;
+    border:1px solid var(--line);
+    border-radius:18px;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(95,212,137,0.06), transparent 65%),
+      var(--bg-raised);
+    margin-bottom:18px;
+    overflow:hidden;
+  }
+  .mesh-canvas svg{ width:100%; height:100%; }
+  .node-label{
+    font-family:var(--font-body); font-size:9.5px; fill:var(--text-dim);
+  }
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+  .legend .item{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-dim); }
+  .legend .sw{ width:9px; height:9px; border-radius:50%; }
+
+  .hop-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:22px;}
+  .hop{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:12px;
+    font-size:12.5px;
+  }
+  .hop .idx{
+    width:22px; height:22px; border-radius:50%;
+    background:var(--bg-raised-2);
+    display:flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:700; color:var(--text-dim);
+    flex-shrink:0;
+  }
+  .hop b{ font-weight:600; }
+  .hop span.sub{ display:block; color:var(--text-faint); font-size:11px; margin-top:1px;}
+
+  /* ---- CONTACTS ---- */
+  .contact-card{
+    display:flex; align-items:center; gap:13px;
+    padding:14px 15px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:11px;
+  }
+  .contact-card .avatar{
+    width:40px; height:40px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:17px; flex-shrink:0;
+    background: var(--bg-raised-2);
+  }
+  .contact-card.police .avatar{ background: rgba(95,163,212,0.18); }
+  .contact-card.hospital .avatar{ background: rgba(255,68,51,0.16); }
+  .contact-card.friend .avatar{ background: rgba(223,232,106,0.18); }
+  .contact-card .info{ flex:1; min-width:0; }
+  .contact-card .name{ font-weight:600; font-size:14px; }
+  .contact-card .role{ font-size:11.5px; color:var(--text-faint); margin-top:1px; }
+  .contact-card .num{
+    font-size:11.5px; color:var(--text-dim); margin-top:2px;
+    border:none; background:transparent; font-family:var(--font-body);
+    width:100%; padding:0; outline:none;
+  }
+  .badge{
+    font-size:10px; font-weight:700; letter-spacing:.04em;
+    padding:3px 7px; border-radius:100px;
+    background: rgba(95,212,137,0.15); color: var(--signal);
+    flex-shrink:0;
+  }
+
+  .add-contact{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:13px; margin-top:6px;
+    border:1px dashed var(--line);
+    border-radius:14px;
+    color:var(--text-dim);
+    font-size:13px;
+    cursor:pointer;
+    background:transparent;
+    width:100%;
+    font-family:var(--font-body);
+  }
+
+  /* ---- LOG ---- */
+  .empty-log{
+    text-align:center; padding:60px 20px; color:var(--text-faint);
+  }
+  .empty-log .big{ font-size:30px; margin-bottom:10px; }
+  .empty-log p{ font-size:13px; line-height:1.6; max-width:26ch; margin:0 auto; }
+
+  .log-entry{
+    padding:14px 15px;
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:11px;
+  }
+  .log-entry .top{ display:flex; align-items:center; justify-content:between; justify-content:space-between; gap:8px;}
+  .log-entry .kind{ font-weight:700; font-size:13.5px; display:flex; align-items:center; gap:7px;}
+  .log-entry .kind.sos{ color: var(--flare); }
+  .log-entry .kind.accident{ color: var(--amber); }
+  .log-entry .time{ font-size:11px; color:var(--text-faint); flex-shrink:0; }
+  .log-entry .recipients{ font-size:11.5px; color:var(--text-dim); margin-top:7px; line-height:1.6;}
+  .log-entry .track-link{
+    margin-top:10px; font-size:11px;
+    padding:8px 10px; border-radius:9px;
+    background:var(--bg-raised-2);
+    color:var(--signal);
+    word-break: break-all;
+    font-family: 'Inter', monospace;
+  }
+
+  /* ---- bottom nav ---- */
+  .tabbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:420px;
+    display:flex;
+    background: var(--bg-raised);
+    border-top:1px solid var(--line);
+    padding: 9px 6px calc(9px + env(safe-area-inset-bottom));
+  }
+  .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:none; border:none; color:var(--text-faint);
+    font-family:var(--font-body); font-size:10.5px; font-weight:600;
+    padding:6px 2px; cursor:pointer; letter-spacing:.01em;
+  }
+  .tab .ic{ font-size:18px; line-height:1; }
+  .tab.active{ color: var(--text); }
+  .tab.active .ic{ filter: none; }
+
+  /* ---- overlay (sending state) ---- */
+  .overlay{
+    position:fixed; inset:0; left:50%; transform:translateX(-50%);
+    max-width:420px; width:100%;
+    background: rgba(14,23,18,0.94);
+    backdrop-filter: blur(4px);
+    display:none;
+    flex-direction:column; align-items:center; justify-content:center;
+    padding:40px;
+    z-index:40;
+    text-align:center;
+  }
+  :root[data-theme="light"] .overlay{ background: rgba(243,241,232,0.96); }
+  @media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .overlay{ background: rgba(243,241,232,0.96);} }
+  .overlay.show{ display:flex; }
+  .overlay .ring{
+    width:110px; height:110px; border-radius:50%;
+    border:3px solid var(--flare-dim);
+    border-top-color: var(--flare);
+    animation: spin 1s linear infinite;
+    margin-bottom:26px;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .overlay h2{
+    font-family:var(--font-head); font-weight:600; font-size:24px; margin:0 0 8px;
+  }
+  .overlay p{ color:var(--text-dim); font-size:13.5px; max-width:28ch; line-height:1.6; margin:0 0 20px;}
+  .overlay .steps{ display:flex; flex-direction:column; gap:9px; align-items:flex-start; width:100%; max-width:260px; }
+  .overlay .step{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--text-faint); }
+  .overlay .step.done{ color: var(--signal); }
+  .overlay .step .chk{ width:15px; height:15px; border-radius:50%; border:1.5px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:9px;}
+  .overlay .step.done .chk{ border-color:var(--signal); background:rgba(95,212,137,.15); }
+  .overlay .dismiss{
+    margin-top:26px; background:none; border:1px solid var(--line);
+    color:var(--text-dim); padding:10px 20px; border-radius:100px;
+    font-family:var(--font-body); font-size:12.5px; cursor:pointer;
+  }
+
+  .theme-toggle{
+    position:absolute; top:16px; right:16px;
+    background:none; border:none; color:var(--text-faint);
+    font-size:15px; cursor:pointer; padding:6px;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="statusbar">
+    <div class="brand"><span class="mark"></span>TouristSafetyApp</div>
+    <div class="net-chip" id="netChip"><span class="dot"></span><span id="netChipText">4 devices in range</span></div>
+  </div>
+
+  <div class="screens">
+
+    <!-- HOME -->
+    <section class="screen active" id="screen-home">
+      <div class="home-top">
+        <h1 class="page-title">You're off-grid.<br>You're still covered.</h1>
+        <p class="page-sub">No SIM signal here — your alerts travel device‑to‑device until they reach someone who has one.</p>
+      </div>
+
+      <div class="sos-wrap">
+        <button class="sos-btn" id="sosBtn">
+          HOLD<br>FOR SOS
+          <small id="sosBtnSub">3 SEC</small>
+        </button>
+        <div class="sos-hint">Press and hold. Sends your location and an alert to Police, your emergency contact, and your guide.</div>
+      </div>
+
+      <div class="quick-row">
+        <button class="quick-btn danger" id="accidentBtn">
+          <span class="qi">🚑</span>
+          <span class="qt">Report accident</span>
+          <span class="qd">Also alerts the nearest hospital</span>
+        </button>
+        <button class="quick-btn" id="silentBtn">
+          <span class="qi">🤫</span>
+          <span class="qt">Silent alert</span>
+          <span class="qd">No sound, no screen flash</span>
+        </button>
+      </div>
+
+      <div class="status-card">
+        <div class="row"><div class="label">📍 Location lock</div><div class="val signal">Accurate to 6m</div></div>
+        <div class="row"><div class="label">🕸️ Mesh network</div><div class="val signal">4 nearby devices</div></div>
+        <div class="row"><div class="label">🛰️ Nearest gateway</div><div class="val amber">2 hops · Ranger post</div></div>
+        <div class="row"><div class="label">🔋 Fall detection</div><div class="val" id="fallStatusVal" style="color:var(--signal)">Armed</div></div>
+      </div>
+    </section>
+
+    <!-- NETWORK -->
+    <section class="screen" id="screen-network">
+      <h1 class="page-title">The mesh around you</h1>
+      <p class="page-sub">Every phone and wearable running TouristSafetyApp relays for the others. No cell tower required.</p>
+
+      <div class="mesh-canvas">
+        <svg viewBox="0 0 320 260" id="meshSvg"></svg>
+      </div>
+
+      <div class="legend">
+        <div class="item"><span class="sw" style="background:var(--signal)"></span>You</div>
+        <div class="item"><span class="sw" style="background:#5fa3d4"></span>Nearby traveller</div>
+        <div class="item"><span class="sw" style="background:var(--amber)"></span>Gateway (has signal)</div>
+      </div>
+
+      <p class="page-sub" style="margin-bottom:12px; font-weight:600; color:var(--text);">How an alert reaches help</p>
+      <div class="hop-list">
+        <div class="hop"><div class="idx">1</div><div><b>Your device</b><span class="sub">Broadcasts SOS packet over Bluetooth mesh</span></div></div>
+        <div class="hop"><div class="idx">2</div><div><b>Nearby traveller</b><span class="sub">Auto-relays without opening the app</span></div></div>
+        <div class="hop"><div class="idx">3</div><div><b>Guide's radio node</b><span class="sub">Carries a long-range LoRa link</span></div></div>
+        <div class="hop"><div class="idx">4</div><div><b>Ranger post gateway</b><span class="sub">Has cell/satellite — forwards to Police, contact & hospital</span></div></div>
+      </div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section class="screen" id="screen-contacts">
+      <h1 class="page-title">Who gets alerted</h1>
+      <p class="page-sub">These four receive every SOS. Accidents also notify the hospital automatically.</p>
+
+      <div class="contact-card police">
+        <div class="avatar">👮</div>
+        <div class="info">
+          <div class="name">Local Police</div>
+          <div class="role">Auto-detected for this region</div>
+        </div>
+        <div class="badge">FIXED</div>
+      </div>
+
+      <div class="contact-card friend">
+        <div class="avatar">🧑‍🤝‍🧑</div>
+        <div class="info">
+          <div class="name">Emergency contact</div>
+          <input class="num" id="friendNum" value="Meera S. · +91 98•• •• 4471">
+        </div>
+      </div>
+
+      <div class="contact-card friend">
+        <div class="avatar">🧭</div>
+        <div class="info">
+          <div class="name">Guide / group lead</div>
+          <input class="num" id="guideNum" value="Arun (Trek lead) · +91 90•• •• 1102">
+        </div>
+      </div>
+
+      <div class="contact-card hospital">
+        <div class="avatar">🏥</div>
+        <div class="info">
+          <div class="name">Nearest hospital</div>
+          <div class="role">Only alerted on accident reports</div>
+        </div>
+        <div class="badge">AUTO</div>
+      </div>
+
+      <button class="add-contact" id="addContactBtn">+ Add another trusted contact</button>
+    </section>
+
+    <!-- LOG -->
+    <section class="screen" id="screen-log">
+      <h1 class="page-title">Alert history</h1>
+      <p class="page-sub">Every alert stays logged on-device, even offline, so there's a record for rescuers later.</p>
+      <div id="logList"></div>
+    </section>
+
+  </div>
+
+  <div class="tabbar">
+    <button class="tab active" data-screen="home"><span class="ic">🏠</span>Home</button>
+    <button class="tab" data-screen="network"><span class="ic">🕸️</span>Mesh</button>
+    <button class="tab" data-screen="contacts"><span class="ic">👥</span>Contacts</button>
+    <button class="tab" data-screen="log"><span class="ic">📜</span>Log</button>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="ring"></div>
+    <h2 id="overlayTitle">Sending SOS</h2>
+    <p id="overlaySub">Relaying through 3 nearby devices to reach a gateway with signal.</p>
+    <div class="steps" id="overlaySteps"></div>
+    <button class="dismiss" id="overlayDismiss" style="display:none;">Done</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- tab navigation ----------
+  var tabs = document.querySelectorAll('.tab');
+  var screens = document.querySelectorAll('.screen');
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){
+      tabs.forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');
+      var target = t.getAttribute('data-screen');
+      screens.forEach(function(s){
+        s.classList.toggle('active', s.id === 'screen-' + target);
+      });
+      if(target === 'network') drawMesh();
+      if(target === 'log') renderLog();
+    });
+  });
+
+  // ---------- storage (per-viewer, local only) ----------
+  var LOG_KEY = 'touristsafetyapp_log_v1';
+  function loadLog(){
+    try{
+      var raw = localStorage.getItem(LOG_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function saveLog(entries){
+    try{ localStorage.setItem(LOG_KEY, JSON.stringify(entries)); }catch(e){}
+  }
+  var logEntries = loadLog();
+
+  function renderLog(){
+    var el = document.getElementById('logList');
+    if(!logEntries.length){
+      el.innerHTML = '<div class="empty-log"><div class="big">🗒️</div><p>No alerts yet. When you send an SOS or report an accident, it lands here with a timestamp and delivery trail.</p></div>';
+      return;
+    }
+    el.innerHTML = logEntries.slice().reverse().map(function(e){
+      return '<div class="log-entry">' +
+        '<div class="top"><div class="kind ' + e.kind + '">' + (e.kind === 'sos' ? '🆘 SOS sent' : '🚑 Accident reported') + '</div><div class="time">' + e.time + '</div></div>' +
+        '<div class="recipients">Reached: ' + e.recipients + ' · delivered in ' + e.hops + ' hops</div>' +
+        '<div class="track-link">touristsafetyapp.live/t/' + e.code + '</div>' +
+      '</div>';
+    }).join('');
+  }
+  renderLog();
+
+  function addLogEntry(kind, recipients){
+    var code = Math.random().toString(36).slice(2,8);
+    var entry = {
+      kind: kind,
+      recipients: recipients,
+      hops: 3,
+      code: code,
+      time: new Date().toLocaleString(undefined, {hour:'2-digit', minute:'2-digit', month:'short', day:'numeric'})
+    };
+    logEntries.push(entry);
+    saveLog(logEntries);
+  }
+
+  // ---------- SOS hold-to-trigger ----------
+  var sosBtn = document.getElementById('sosBtn');
+  var HOLD_MS = 1800;
+  var holdTimer = null, holdStart = null, raf = null;
+
+  function setProgress(p){ sosBtn.style.setProperty('--p', (p*100) + '%'); }
+
+  function startHold(){
+    holdStart = Date.now();
+    cancelAnimationFrame(raf);
+    step();
+    holdTimer = setTimeout(function(){
+      triggerAlert('sos');
+      resetHold();
+    }, HOLD_MS);
+  }
+  function step(){
+    var p = Math.min(1, (Date.now() - holdStart) / HOLD_MS);
+    setProgress(p);
+    if(p < 1){ raf = requestAnimationFrame(step); }
+  }
+  function resetHold(){
+    clearTimeout(holdTimer);
+    cancelAnimationFrame(raf);
+    setProgress(0);
+  }
+  sosBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); });
+  sosBtn.addEventListener('pointerup', resetHold);
+  sosBtn.addEventListener('pointerleave', resetHold);
+  sosBtn.addEventListener('pointercancel', resetHold);
+
+  document.getElementById('accidentBtn').addEventListener('click', function(){
+    triggerAlert('accident');
+  });
+  document.getElementById('silentBtn').addEventListener('click', function(){
+    triggerAlert('sos', true);
+  });
+
+  // ---------- overlay / send simulation ----------
+  var overlay = document.getElementById('overlay');
+  var overlayTitle = document.getElementById('overlayTitle');
+  var overlaySub = document.getElementById('overlaySub');
+  var overlaySteps = document.getElementById('overlaySteps');
+  var overlayDismiss = document.getElementById('overlayDismiss');
+
+  overlayDismiss.addEventListener('click', function(){
+    overlay.classList.remove('show');
+  });
+
+  function triggerAlert(kind, silent){
+    var isAccident = kind === 'accident';
+    var recipientList = isAccident
+      ? ['Police', 'Emergency contact', 'Guide', 'Nearest hospital']
+      : ['Police', 'Emergency contact', 'Guide'];
+
+    overlayTitle.textContent = isAccident ? 'Reporting accident' : (silent ? 'Sending silent alert' : 'Sending SOS');
+    overlaySub.textContent = 'Relaying through nearby devices to reach ' + recipientList.join(', ') + '.';
+    overlaySteps.innerHTML = ['Broadcasting over mesh', 'Relayed by nearby device', 'Reached gateway with signal', 'Delivered to ' + recipientList.length + ' recipients']
+      .map(function(s,i){ return '<div class="step" data-i="'+i+'"><div class="chk"></div>' + s + '</div>'; }).join('');
+    overlayDismiss.style.display = 'none';
+    overlay.classList.add('show');
+
+    var stepsEls = overlaySteps.querySelectorAll('.step');
+    stepsEls.forEach(function(el, i){
+      setTimeout(function(){
+        el.classList.add('done');
+        el.querySelector('.chk').textContent = '✓';
+        if(i === stepsEls.length - 1){
+          setTimeout(function(){
+            overlayDismiss.style.display = 'inline-block';
+          }, 300);
+        }
+      }, 650 * (i+1));
+    });
+
+    addLogEntry(kind, recipientList.join(', '));
+  }
+
+  // ---------- mesh network drawing ----------
+  var meshDrawn = false;
+  function drawMesh(){
+    var svg = document.getElementById('meshSvg');
+    svg.innerHTML = '';
+    var cx = 160, cy = 140;
+    var nodes = [
+      {x:cx, y:cy, r:12, color:'var(--signal)', label:'You'},
+      {x:cx-88, y:cy-38, r:8, color:'#5fa3d4', label:'Traveller'},
+      {x:cx+70, y:cy-60, r:8, color:'#5fa3d4', label:'Traveller'},
+      {x:cx+96, y:cy+40, r:9, color:'#5fa3d4', label:'Guide node'},
+      {x:cx+150, y:cy-10, r:10, color:'var(--amber)', label:'Gateway'}
+    ];
+    var edges = [[0,1],[0,2],[2,3],[3,4]];
+
+    var ns = 'http://www.w3.org/2000/svg';
+    edges.forEach(function(e){
+      var a = nodes[e[0]], b = nodes[e[1]];
+      var line = document.createElementNS(ns,'line');
+      line.setAttribute('x1', a.x); line.setAttribute('y1', a.y);
+      line.setAttribute('x2', b.x); line.setAttribute('y2', b.y);
+      line.setAttribute('stroke', 'var(--line)');
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '3 4');
+      svg.appendChild(line);
+    });
+
+    nodes.forEach(function(n){
+      var c = document.createElementNS(ns,'circle');
+      c.setAttribute('cx', n.x); c.setAttribute('cy', n.y); c.setAttribute('r', n.r);
+      c.setAttribute('fill', n.color);
+      svg.appendChild(c);
+
+      var t = document.createElementNS(ns,'text');
+      t.setAttribute('x', n.x); t.setAttribute('y', n.y + n.r + 14);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('class','node-label');
+      t.textContent = n.label;
+      svg.appendChild(t);
+    });
+
+    // pulsing ring on "you"
+    var pulse = document.createElementNS(ns,'circle');
+    pulse.setAttribute('cx', cx); pulse.setAttribute('cy', cy); pulse.setAttribute('r', 12);
+    pulse.setAttribute('fill','none');
+    pulse.setAttribute('stroke','var(--signal)');
+    pulse.setAttribute('stroke-width','1.5');
+    pulse.setAttribute('opacity','0.6');
+    var anim = document.createElementNS(ns,'animate');
+    anim.setAttribute('attributeName','r');
+    anim.setAttribute('values','12;34;12');
+    anim.setAttribute('dur','2.4s');
+    anim.setAttribute('repeatCount','indefinite');
+    var anim2 = document.createElementNS(ns,'animate');
+    anim2.setAttribute('attributeName','opacity');
+    anim2.setAttribute('values','0.6;0;0.6');
+    anim2.setAttribute('dur','2.4s');
+    anim2.setAttribute('repeatCount','indefinite');
+    pulse.appendChild(anim); pulse.appendChild(anim2);
+    svg.appendChild(pulse);
+  }
+  drawMesh();
+
+})();
+</script>
+</body>
+</html>
